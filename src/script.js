@@ -2,13 +2,15 @@ import * as THREE from 'three';
 import {
     OrbitControls,
     GLTFLoader,
-    DRACOLoader
+    DRACOLoader,
+    GPUComputationRenderer
 } from 'three/examples/jsm/Addons.js';
 
 import GUI from 'lil-gui';
 
 import particlesVertexShader from './shaders/particles/vertex.glsl';
 import particlesFragmentShader from './shaders/particles/fragment.glsl';
+import gpgpuParticlesShader from './shaders/gpgpu/particles.glsl';
 
 /**
  * Base
@@ -87,12 +89,52 @@ debugObject.clearColor = '#29191f';
 renderer.setClearColor(debugObject.clearColor);
 
 /**
+ * Base Geometry
+ */
+const baseGeometry = {};
+baseGeometry.instance = new THREE.SphereGeometry(3);
+baseGeometry.count = baseGeometry.instance.attributes.position.count;
+
+/**
+ * GPU Conputation Renderer
+ */
+const gpgpu = {};
+gpgpu.size = Math.ceil(Math.sqrt(baseGeometry.count));
+gpgpu.computation = new GPUComputationRenderer(gpgpu.size, gpgpu.size, renderer);
+
+// Base particles
+const baseParticlesTexture = gpgpu.computation.createTexture();
+
+// Particles Variables
+gpgpu.particlesVariable = gpgpu.computation.addVariable(
+    'uParticles',
+    gpgpuParticlesShader,
+    baseParticlesTexture
+);
+gpgpu.computation.setVariableDependencies(
+    gpgpu.particlesVariable,
+    [gpgpu.particlesVariable]
+);
+
+// Init
+gpgpu.computation.init();
+
+// Debug
+gpgpu.debug = new THREE.Mesh(
+    new THREE.PlaneGeometry(3, 3),
+    new THREE.MeshBasicMaterial({
+        map: gpgpu.computation.getCurrentRenderTarget(
+            gpgpu.particlesVariable
+        ).texture
+    })
+);
+gpgpu.debug.position.x = 3;
+scene.add(gpgpu.debug);
+
+/**
  * Particles
  */
 const particles = {};
-
-// Geometry
-particles.geometry = new THREE.SphereGeometry(3);
 
 // Material
 particles.material = new THREE.ShaderMaterial({
@@ -110,7 +152,7 @@ particles.material = new THREE.ShaderMaterial({
 });
 
 // Points
-particles.points = new THREE.Points(particles.geometry, particles.material);
+particles.points = new THREE.Points(baseGeometry.instance, particles.material);
 scene.add(particles.points);
 
 /**
@@ -142,6 +184,9 @@ const tick = () =>
 
     // Update controls
     controls.update();
+
+    // GPGPU Update
+    gpgpu.computation.compute();
 
     // Render normal scene
     renderer.render(scene, camera);
