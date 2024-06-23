@@ -1,8 +1,10 @@
 // Uniforms
 uniform vec2 uResolution;
 uniform float uSize;
+uniform sampler2D uParticlesTexture;
 
-// Attribbutes
+// Attributes
+attribute vec2 aParticleUv;
 
 // Varyings
 varying vec3 vColor;
@@ -11,7 +13,10 @@ varying vec3 vColor;
 
 void main()
 {
-    vec4 modelPosition = modelMatrix * vec4(position, 1.);
+    // Particles
+    vec4 particle = texture(uParticlesTexture, aParticleUv);
+
+    vec4 modelPosition = modelMatrix * vec4(particle.xyz, 1.);
     vec4 viewPosition = viewMatrix * modelPosition;
     vec4 projectionPosition = projectionMatrix * viewPosition;
 
