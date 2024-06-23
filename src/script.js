@@ -133,6 +133,9 @@ gpgpu.computation.setVariableDependencies(
     [gpgpu.particlesVariable]
 );
 
+// Uniforms
+gpgpu.particlesVariable.material.uniforms.uTime = new THREE.Uniform(0);
+
 // Init
 gpgpu.computation.init();
 
@@ -241,6 +244,7 @@ const tick = () =>
     controls.update();
 
     // GPGPU Update
+    gpgpu.particlesVariable.material.uniforms.uTime.value = elapsedTime;
     gpgpu.computation.compute();
     particles.material.uniforms.uParticlesTexture.value =
         gpgpu.computation.getCurrentRenderTarget(gpgpu.particlesVariable).texture;
