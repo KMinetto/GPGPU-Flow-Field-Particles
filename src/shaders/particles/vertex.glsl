@@ -1,8 +1,12 @@
 // Uniforms
 uniform vec2 uResolution;
 uniform float uSize;
+uniform sampler2D uParticlesTexture;
 
-// Attribbutes
+// Attributes
+attribute vec2 aParticleUv;
+attribute vec3 aColor;
+attribute float aRandomParticlesSize;
 
 // Varyings
 varying vec3 vColor;
@@ -11,16 +15,23 @@ varying vec3 vColor;
 
 void main()
 {
-    vec4 modelPosition = modelMatrix * vec4(position, 1.);
+    // Particles
+    vec4 particle = texture(uParticlesTexture, aParticleUv);
+
+    vec4 modelPosition = modelMatrix * vec4(particle.xyz, 1.);
     vec4 viewPosition = viewMatrix * modelPosition;
     vec4 projectionPosition = projectionMatrix * viewPosition;
 
     gl_Position = projectionPosition;
 
     // Point size
-    gl_PointSize = uSize * uResolution.y;
+    float sizeIn = smoothstep(0.0, 0.1, particle.a);
+    float sizeOut = 1.0 - smoothstep(0.7, 1.0, particle.a);
+    float size = min(sizeIn, sizeOut);
+
+    gl_PointSize = size * aRandomParticlesSize * uSize * uResolution.y;
     gl_PointSize *= (1.0 / - viewPosition.z);
 
     // Varyings
-    vColor = vec3(1.0);
+    vColor = aColor;
 }
