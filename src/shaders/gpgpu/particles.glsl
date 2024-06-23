@@ -16,7 +16,7 @@ void main()
 
     // Dead
     if (particle.a >= 1.0) {
-        particle.a = 0.0;
+        particle.a = mod(particle.a, 1.0);
         particle.xyz = base.xyz;
     }
 
